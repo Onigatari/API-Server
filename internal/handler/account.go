@@ -8,6 +8,12 @@ import (
 	"strconv"
 )
 
+func (h *Handler) ping(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"message": "pong",
+	})
+}
+
 func (h *Handler) balance(c *gin.Context) {
 	idStringInput := c.Param("id")
 	log.Printf("Input read: %v %T", idStringInput, idStringInput)
@@ -38,7 +44,7 @@ func (h *Handler) deposit(c *gin.Context) {
 		NewErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	response, err := h.services.BalanceOperations.DepositMoney(updateBalanceDepositRequest, c)
+	response, err := h.services.BalanceOperations.Deposit(updateBalanceDepositRequest, c)
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 	} else {
@@ -59,7 +65,7 @@ func (h *Handler) withdrawal(c *gin.Context) {
 		NewErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	response, err := h.services.BalanceOperations.WithdrawMoney(updateBalanceWithdrawRequest, c)
+	response, err := h.services.BalanceOperations.Withdrawal(updateBalanceWithdrawRequest, c)
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 	} else {
@@ -73,111 +79,6 @@ func (h *Handler) withdrawal(c *gin.Context) {
 	}
 }
 
-// @Summary reserveServiceFee
-// @Tags account
-// @Description "Put specified amount of money in reservation for a given account"
-// @Accept json
-// @Produce json
-// @Param input body models.ReserveServiceFeeRequest true "JSON object with used ID, service ID, order ID and fee amount"
-// @Success 200 {object} models.ReserveServiceFeeResponse
-// @Failure 500 {object} errorAcc
-// @Router /account/reserveServiceFee [post]
-func (h *Handler) reserveServiceFee(c *gin.Context) {
-	var reserveServiceFeeRequest models.ReserveServiceFeeRequest
-
-	if err := c.BindJSON(&reserveServiceFeeRequest); err != nil {
-		NewErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	response, err := h.services.BalanceOperations.ReserveServiceFee(reserveServiceFeeRequest, c)
-	if err != nil {
-		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
-	} else {
-		c.JSON(http.StatusOK, gin.H{
-			"account-id": response.UserId,
-			"service-id": response.ServiceId,
-			"order-id":   response.OrderId,
-			"invoice":    response.Invoice,
-			"status":     response.Status,
-			"created-at": response.CreatedAt,
-			"updated-at": response.UpdatedAt,
-		})
-	}
-}
-
-// @Summary approveOrderFee
-// @Tags account
-// @Description "Approve specified reservation"
-// @Accept json
-// @Produce json
-// @Param input body models.StatusServiceFeeRequest true "JSON object with used ID, service ID, order ID and fee amount"
-// @Success 200 {object} models.StatusServiceFeeResponse
-// @Failure 500 {object} errorAcc
-// @Router /account/approveOrderFee [post]
-func (h *Handler) approveOrderFee(c *gin.Context) {
-	var statusApproveServiceFeeRequest models.StatusServiceFeeRequest
-
-	if err := c.BindJSON(&statusApproveServiceFeeRequest); err != nil {
-		NewErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	response, err := h.services.BalanceOperations.ApproveServiceFee(statusApproveServiceFeeRequest, c)
-	if err != nil {
-		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
-	} else {
-		c.JSON(http.StatusOK, gin.H{
-			"account-id": response.UserId,
-			"service-id": response.ServiceId,
-			"order-id":   response.OrderId,
-			"invoice":    response.Invoice,
-			"status":     response.Status,
-			"created-at": response.CreatedAt,
-			"updated-at": response.UpdatedAt,
-		})
-	}
-}
-
-// @Summary failedServiceFee
-// @Tags account
-// @Description "Mark reservation as failed and release funds"
-// @Accept json
-// @Produce json
-// @Param input body models.StatusServiceFeeRequest true "JSON object with used ID, service ID, order ID and fee amount"
-// @Success 200 {object} models.StatusServiceFeeResponse
-// @Failure 500 {object} errorAcc
-// @Router /account/failedServiceFee [post]
-func (h *Handler) failedServiceFee(c *gin.Context) {
-	var statusFailedServiceFeeRequest models.StatusServiceFeeRequest
-
-	if err := c.BindJSON(&statusFailedServiceFeeRequest); err != nil {
-		NewErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	response, err := h.services.BalanceOperations.FailedServiceFee(statusFailedServiceFeeRequest, c)
-	if err != nil {
-		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
-	} else {
-		c.JSON(http.StatusOK, gin.H{
-			"account-id": response.UserId,
-			"service-id": response.ServiceId,
-			"order-id":   response.OrderId,
-			"invoice":    response.Invoice,
-			"status":     response.Status,
-			"created-at": response.CreatedAt,
-			"updated-at": response.UpdatedAt,
-		})
-	}
-}
-
-// @Summary transfer
-// @Tags account
-// @Description "Transfer funds from one account to another"
-// @Accept json
-// @Produce json
-// @Param input body models.TransferRequest true "JSON object with sender ID, receiver ID and money amount"
-// @Success 200 {object} models.TransferResponse
-// @Failure 500 {object} errorAcc
-// @Router /account/transfer [post]
 func (h *Handler) transfer(c *gin.Context) {
 	var transferRequest models.TransferRequest
 
@@ -200,8 +101,72 @@ func (h *Handler) transfer(c *gin.Context) {
 	}
 }
 
-func (h *Handler) pong(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"message": "ping",
-	})
+func (h *Handler) reserveService(c *gin.Context) {
+	var reserveServiceRequest models.ReserveServiceRequest
+
+	if err := c.BindJSON(&reserveServiceRequest); err != nil {
+		NewErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	response, err := h.services.BalanceOperations.ReserveService(reserveServiceRequest, c)
+	if err != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+	} else {
+		c.JSON(http.StatusOK, gin.H{
+			"account-id": response.UserId,
+			"service-id": response.ServiceId,
+			"order-id":   response.OrderId,
+			"invoice":    response.Invoice,
+			"status":     response.Status,
+			"created-at": response.CreatedAt,
+			"updated-at": response.UpdatedAt,
+		})
+	}
+}
+
+func (h *Handler) approveOrder(c *gin.Context) {
+	var statusApproveServiceRequest models.StatusServiceRequest
+
+	if err := c.BindJSON(&statusApproveServiceRequest); err != nil {
+		NewErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	response, err := h.services.BalanceOperations.ApproveService(statusApproveServiceRequest, c)
+	if err != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+	} else {
+		c.JSON(http.StatusOK, gin.H{
+			"account-id": response.UserId,
+			"service-id": response.ServiceId,
+			"order-id":   response.OrderId,
+			"invoice":    response.Invoice,
+			"status":     response.Status,
+			"created-at": response.CreatedAt,
+			"updated-at": response.UpdatedAt,
+		})
+	}
+}
+
+func (h *Handler) failedService(c *gin.Context) {
+	var statusFailedServiceRequest models.StatusServiceRequest
+
+	if err := c.BindJSON(&statusFailedServiceRequest); err != nil {
+		NewErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response, err := h.services.BalanceOperations.FailedService(statusFailedServiceRequest, c)
+	if err != nil {
+		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
+	} else {
+		c.JSON(http.StatusOK, gin.H{
+			"account-id": response.UserId,
+			"service-id": response.ServiceId,
+			"order-id":   response.OrderId,
+			"invoice":    response.Invoice,
+			"status":     response.Status,
+			"created-at": response.CreatedAt,
+			"updated-at": response.UpdatedAt,
+		})
+	}
 }

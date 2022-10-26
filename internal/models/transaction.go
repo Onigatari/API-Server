@@ -2,7 +2,6 @@ package models
 
 import "time"
 
-// Transaction /* */
 type Transaction struct {
 	Id         int64     `json:"tx-id"`
 	UserIdTo   int64     `json:"receive-user"`

@@ -2,7 +2,6 @@ package models
 
 import "time"
 
-// Order /* */
 type Order struct {
 	Id        int64     `json:"order-id"`
 	UserId    int64     `json:"user-id"`
@@ -13,18 +12,14 @@ type Order struct {
 	Timecode  time.Time `json:"timecode"`
 }
 
-// ReserveServiceFeeRequest
-// Метод резервирования средств с основного баланса на отдельном счете.
-// Принимает id пользователя, ИД услуги, ИД заказа, стоимость.
-
-type ReserveServiceFeeRequest struct {
+type ReserveServiceRequest struct {
 	UserId    int64 `json:"user-id"`
 	ServiceId int64 `json:"service-id"`
 	OrderId   int64 `json:"order-id"`
-	Fee       int64 `json:"fee"`
+	Payment   int64 `json:"payment"`
 }
 
-type ReserveServiceFeeResponse struct {
+type ReserveServiceResponse struct {
 	UserId    int64     `json:"user-id"`
 	ServiceId int64     `json:"service-id"`
 	OrderId   int64     `json:"order-id"`
@@ -34,14 +29,14 @@ type ReserveServiceFeeResponse struct {
 	UpdatedAt time.Time `json:"updated-at"`
 }
 
-type StatusServiceFeeRequest struct {
+type StatusServiceRequest struct {
 	UserId    int64 `json:"user-id"`
 	ServiceId int64 `json:"service-id"`
 	OrderId   int64 `json:"order-id"`
-	Fee       int64 `json:"fee"`
+	Payment   int64 `json:"payment"`
 }
 
-type StatusServiceFeeResponse struct {
+type StatusServiceResponse struct {
 	UserId    int64     `json:"user-id"`
 	ServiceId int64     `json:"service-id"`
 	OrderId   int64     `json:"order-id"`

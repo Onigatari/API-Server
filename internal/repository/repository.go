@@ -8,20 +8,20 @@ import (
 
 type BalanceOperations interface {
 	GetBalance(userId models.GetBalanceRequest, ctx *gin.Context) (models.GetBalanceResponse, error)
-	DepositMoney(depositReq models.UpdateBalanceRequest, ctx *gin.Context) (models.UpdateBalanceDepositResponse, error)
-	WithdrawMoney(withdrawReq models.UpdateBalanceRequest, ctx *gin.Context) (models.UpdateBalanceWithdrawResponse, error)
-	ReserveServiceFee(reserveSerFeeReq models.ReserveServiceFeeRequest, ctx *gin.Context) (models.ReserveServiceFeeResponse, error)
-	ApproveServiceFee(approveSerFeeReq models.StatusServiceFeeRequest, ctx *gin.Context) (models.StatusServiceFeeResponse, error)
+	Deposit(depositReq models.UpdateBalanceRequest, ctx *gin.Context) (models.UpdateBalanceDepositResponse, error)
+	Withdrawal(withdrawReq models.UpdateBalanceRequest, ctx *gin.Context) (models.UpdateBalanceWithdrawResponse, error)
 	Transfer(transferReq models.TransferRequest, ctx *gin.Context) (models.TransferResponse, error)
-	FailedServiceFee(failedServiceFeeReq models.StatusServiceFeeRequest, ctx *gin.Context) (models.StatusServiceFeeResponse, error)
+	ReserveService(reserveSerFeeReq models.ReserveServiceRequest, ctx *gin.Context) (models.ReserveServiceResponse, error)
+	ApproveService(approveSerFeeReq models.StatusServiceRequest, ctx *gin.Context) (models.StatusServiceResponse, error)
+	FailedService(failedServiceFeeReq models.StatusServiceRequest, ctx *gin.Context) (models.StatusServiceResponse, error)
 }
 
-type BillingRepo struct {
+type AppRepository struct {
 	BalanceOperations
 }
 
-func NewRepo(db *sqlx.DB) *BillingRepo {
-	return &BillingRepo{
-		BalanceOperations: NewAccPostgres(db),
+func NewRepository(db *sqlx.DB) *AppRepository {
+	return &AppRepository{
+		BalanceOperations: NewPostgres(db),
 	}
 }

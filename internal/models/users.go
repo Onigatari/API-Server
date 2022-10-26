@@ -2,7 +2,6 @@ package models
 
 import "time"
 
-// Users /* */
 type Users struct {
 	Id            int64     `json:"order-id"`
 	UserId        int64     `json:"user-id" binding:"required"`

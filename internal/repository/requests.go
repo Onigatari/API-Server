@@ -115,7 +115,7 @@ type RequestPostgres struct {
 	db *sqlx.DB
 }
 
-func NewAccPostgres(db *sqlx.DB) *RequestPostgres {
+func NewPostgres(db *sqlx.DB) *RequestPostgres {
 	return &RequestPostgres{db: db}
 }
 
@@ -146,7 +146,7 @@ func (r *RequestPostgres) GetBalance(userid models.GetBalanceRequest, ctx *gin.C
 	return models.GetBalanceResponse{Balance: balanceRes.Balance, Pending: balanceRes.Pending}, nil
 }
 
-func (r *RequestPostgres) DepositMoney(depositReq models.UpdateBalanceRequest, ctx *gin.Context) (models.UpdateBalanceDepositResponse, error) {
+func (r *RequestPostgres) Deposit(depositReq models.UpdateBalanceRequest, ctx *gin.Context) (models.UpdateBalanceDepositResponse, error) {
 	var depositResponse models.UpdateBalanceDepositResponse
 
 	fail := func(err error) (models.UpdateBalanceDepositResponse, error) {
@@ -236,7 +236,7 @@ func (r *RequestPostgres) DepositMoney(depositReq models.UpdateBalanceRequest, c
 	}, nil
 }
 
-func (r *RequestPostgres) WithdrawMoney(withdrawReq models.UpdateBalanceRequest, ctx *gin.Context) (models.UpdateBalanceWithdrawResponse, error) {
+func (r *RequestPostgres) Withdrawal(withdrawReq models.UpdateBalanceRequest, ctx *gin.Context) (models.UpdateBalanceWithdrawResponse, error) {
 	var withdrawResponse models.UpdateBalanceWithdrawResponse
 
 	fail := func(err error) (models.UpdateBalanceWithdrawResponse, error) {
@@ -435,29 +435,29 @@ func (r *RequestPostgres) Transfer(transferReq models.TransferRequest, ctx *gin.
 	}, nil
 }
 
-func (r *RequestPostgres) ReserveServiceFee(reserveSerFeeReq models.ReserveServiceFeeRequest, ctx *gin.Context) (models.ReserveServiceFeeResponse, error) {
-	var reserveRes models.ReserveServiceFeeResponse
+func (r *RequestPostgres) ReserveService(reserveServiceReq models.ReserveServiceRequest, ctx *gin.Context) (models.ReserveServiceResponse, error) {
+	var reserveRes models.ReserveServiceResponse
 
-	fail := func(err error) (models.ReserveServiceFeeResponse, error) {
-		return reserveRes, fmt.Errorf("ReserveServiceFee: %v", err)
+	fail := func(err error) (models.ReserveServiceResponse, error) {
+		return reserveRes, fmt.Errorf("ReserveService: %v", err)
 	}
 
-	if reserveSerFeeReq.Fee < 0 {
+	if reserveServiceReq.Payment < 0 {
 		err := errors.New("can't reserve negative sum")
 		return fail(err)
 	}
 
-	if reserveSerFeeReq.ServiceId < 0 {
+	if reserveServiceReq.ServiceId < 0 {
 		err := errors.New("illegal service ID")
 		return fail(err)
 	}
 
-	if reserveSerFeeReq.OrderId < 0 {
+	if reserveServiceReq.OrderId < 0 {
 		err := errors.New("illegal order ID")
 		return fail(err)
 	}
 
-	if reserveSerFeeReq.UserId <= 0 {
+	if reserveServiceReq.UserId <= 0 {
 		err := errors.New("illegal user ID")
 		return fail(err)
 	}
@@ -485,7 +485,7 @@ func (r *RequestPostgres) ReserveServiceFee(reserveSerFeeReq models.ReserveServi
 
 	var exists int64
 
-	if err = tx.QueryRowContext(ctx, requestByIdQuery, reserveSerFeeReq.UserId).Scan(&exists); err != nil {
+	if err = tx.QueryRowContext(ctx, requestByIdQuery, reserveServiceReq.UserId).Scan(&exists); err != nil {
 		if err == sql.ErrNoRows {
 			log.Println("no account with that user id: add a new one by depositing money")
 			return fail(err)
@@ -493,14 +493,14 @@ func (r *RequestPostgres) ReserveServiceFee(reserveSerFeeReq models.ReserveServi
 		return fail(err)
 	}
 
-	_, err = tx.ExecContext(ctx, logServiceOrderQuery, reserveSerFeeReq.UserId, reserveSerFeeReq.Fee, reserveSerFeeReq.ServiceId,
-		reserveSerFeeReq.OrderId, "Pending")
+	_, err = tx.ExecContext(ctx, logServiceOrderQuery, reserveServiceReq.UserId, reserveServiceReq.Payment, reserveServiceReq.ServiceId,
+		reserveServiceReq.OrderId, "Pending")
 
 	if err != nil {
 		return fail(err)
 	}
 
-	_, err = tx.ExecContext(ctx, reserveAmountQuery, reserveSerFeeReq.UserId, reserveSerFeeReq.Fee)
+	_, err = tx.ExecContext(ctx, reserveAmountQuery, reserveServiceReq.UserId, reserveServiceReq.Payment)
 
 	if err != nil {
 		return fail(err)
@@ -510,8 +510,8 @@ func (r *RequestPostgres) ReserveServiceFee(reserveSerFeeReq models.ReserveServi
 		return fail(err)
 	}
 
-	logServiceOrderRes := r.db.QueryRowContext(ctx, getLastServiceQuery, reserveSerFeeReq.UserId,
-		reserveSerFeeReq.OrderId, reserveSerFeeReq.ServiceId, reserveSerFeeReq.Fee)
+	logServiceOrderRes := r.db.QueryRowContext(ctx, getLastServiceQuery, reserveServiceReq.UserId,
+		reserveServiceReq.OrderId, reserveServiceReq.ServiceId, reserveServiceReq.Payment)
 	if err := logServiceOrderRes.Scan(
 		&reserveRes.UserId,
 		&reserveRes.ServiceId,
@@ -526,19 +526,19 @@ func (r *RequestPostgres) ReserveServiceFee(reserveSerFeeReq models.ReserveServi
 	return reserveRes, nil
 }
 
-func (r *RequestPostgres) ApproveServiceFee(approveSerFeeReq models.StatusServiceFeeRequest, ctx *gin.Context) (models.StatusServiceFeeResponse, error) {
-	var approvalServiceFeeResponse models.StatusServiceFeeResponse
+func (r *RequestPostgres) ApproveService(approveServiceReq models.StatusServiceRequest, ctx *gin.Context) (models.StatusServiceResponse, error) {
+	var approvalServiceResponse models.StatusServiceResponse
 
-	fail := func(err error) (models.StatusServiceFeeResponse, error) {
-		return approvalServiceFeeResponse, fmt.Errorf("ApproveServiceFee: %v", err)
+	fail := func(err error) (models.StatusServiceResponse, error) {
+		return approvalServiceResponse, fmt.Errorf("ApproveService: %v", err)
 	}
 
-	if approveSerFeeReq.Fee < 0 {
+	if approveServiceReq.Payment < 0 {
 		err := errors.New("can't withdraw negative funds")
 		return fail(err)
 	}
 
-	if approveSerFeeReq.UserId <= 0 {
+	if approveServiceReq.UserId <= 0 {
 		err := errors.New("illegal user ID")
 		return fail(err)
 	}
@@ -568,7 +568,7 @@ func (r *RequestPostgres) ApproveServiceFee(approveSerFeeReq models.StatusServic
 		Balance int64
 	}
 
-	if err = tx.QueryRowContext(ctx, getIdBalanceQuery, approveSerFeeReq.UserId).Scan(
+	if err = tx.QueryRowContext(ctx, getIdBalanceQuery, approveServiceReq.UserId).Scan(
 		&idBalanceHolder.Id,
 		&idBalanceHolder.Balance,
 	); err != nil {
@@ -579,15 +579,15 @@ func (r *RequestPostgres) ApproveServiceFee(approveSerFeeReq models.StatusServic
 		return fail(err)
 	}
 
-	if idBalanceHolder.Balance < approveSerFeeReq.Fee {
+	if idBalanceHolder.Balance < approveServiceReq.Payment {
 		err = errors.New("not enough funds")
 		return fail(err)
 	}
 
 	var status string
 
-	if err = tx.QueryRowContext(ctx, getLastServiceStatusQuery, approveSerFeeReq.UserId, approveSerFeeReq.OrderId,
-		approveSerFeeReq.ServiceId, approveSerFeeReq.Fee).Scan(&status); err != nil {
+	if err = tx.QueryRowContext(ctx, getLastServiceStatusQuery, approveServiceReq.UserId, approveServiceReq.OrderId,
+		approveServiceReq.ServiceId, approveServiceReq.Payment).Scan(&status); err != nil {
 		if err == sql.ErrNoRows {
 			log.Println("No user with that user id. Add a new one by depositing money.")
 			return fail(err)
@@ -595,25 +595,25 @@ func (r *RequestPostgres) ApproveServiceFee(approveSerFeeReq models.StatusServic
 		return fail(err)
 	} else {
 		if status == "Approved" {
-			err = errors.New("this fee has already been approved")
+			err = errors.New("this payment has already been approved")
 			return fail(err)
 		}
 	}
 
-	_, err = tx.ExecContext(ctx, changeServiceStatusQuery, approveSerFeeReq.UserId, approveSerFeeReq.OrderId,
-		approveSerFeeReq.ServiceId, approveSerFeeReq.Fee, "Approved")
+	_, err = tx.ExecContext(ctx, changeServiceStatusQuery, approveServiceReq.UserId, approveServiceReq.OrderId,
+		approveServiceReq.ServiceId, approveServiceReq.Payment, "Approved")
 
 	if err != nil {
 		return fail(err)
 	}
 
-	_, err = tx.ExecContext(ctx, withdrawFundsQuery, approveSerFeeReq.UserId, approveSerFeeReq.Fee)
+	_, err = tx.ExecContext(ctx, withdrawFundsQuery, approveServiceReq.UserId, approveServiceReq.Payment)
 
 	if err != nil {
 		return fail(err)
 	}
 
-	_, err = tx.ExecContext(ctx, decreasePendingAmountQuery, approveSerFeeReq.UserId, approveSerFeeReq.Fee)
+	_, err = tx.ExecContext(ctx, decreasePendingAmountQuery, approveServiceReq.UserId, approveServiceReq.Payment)
 
 	if err != nil {
 		return fail(err)
@@ -623,30 +623,30 @@ func (r *RequestPostgres) ApproveServiceFee(approveSerFeeReq models.StatusServic
 		return fail(err)
 	}
 
-	logServiceOrderRes := r.db.QueryRowContext(ctx, getLastServiceQuery, approveSerFeeReq.UserId, approveSerFeeReq.OrderId,
-		approveSerFeeReq.ServiceId, approveSerFeeReq.Fee)
+	logServiceOrderRes := r.db.QueryRowContext(ctx, getLastServiceQuery, approveServiceReq.UserId, approveServiceReq.OrderId,
+		approveServiceReq.ServiceId, approveServiceReq.Payment)
 	if err := logServiceOrderRes.Scan(
-		&approvalServiceFeeResponse.UserId,
-		&approvalServiceFeeResponse.ServiceId,
-		&approvalServiceFeeResponse.OrderId,
-		&approvalServiceFeeResponse.Invoice,
-		&approvalServiceFeeResponse.Status,
-		&approvalServiceFeeResponse.CreatedAt,
-		&approvalServiceFeeResponse.UpdatedAt,
+		&approvalServiceResponse.UserId,
+		&approvalServiceResponse.ServiceId,
+		&approvalServiceResponse.OrderId,
+		&approvalServiceResponse.Invoice,
+		&approvalServiceResponse.Status,
+		&approvalServiceResponse.CreatedAt,
+		&approvalServiceResponse.UpdatedAt,
 	); err != nil {
-		return approvalServiceFeeResponse, err
+		return approvalServiceResponse, err
 	}
-	return approvalServiceFeeResponse, nil
+	return approvalServiceResponse, nil
 }
 
-func (r *RequestPostgres) FailedServiceFee(failedServiceFeeReq models.StatusServiceFeeRequest, ctx *gin.Context) (models.StatusServiceFeeResponse, error) {
-	var failedServiceFee models.StatusServiceFeeResponse
+func (r *RequestPostgres) FailedService(failedServiceReq models.StatusServiceRequest, ctx *gin.Context) (models.StatusServiceResponse, error) {
+	var failedService models.StatusServiceResponse
 
-	fail := func(err error) (models.StatusServiceFeeResponse, error) {
-		return failedServiceFee, fmt.Errorf("FailedServiceFee: %v", err)
+	fail := func(err error) (models.StatusServiceResponse, error) {
+		return failedService, fmt.Errorf("FailedService: %v", err)
 	}
 
-	if failedServiceFeeReq.UserId <= 0 {
+	if failedServiceReq.UserId <= 0 {
 		err := errors.New("illegal user ID")
 		return fail(err)
 	}
@@ -676,7 +676,7 @@ func (r *RequestPostgres) FailedServiceFee(failedServiceFeeReq models.StatusServ
 		Bal int64
 	}
 
-	if err = tx.QueryRowContext(ctx, getIdBalanceQuery, failedServiceFeeReq.UserId).Scan(
+	if err = tx.QueryRowContext(ctx, getIdBalanceQuery, failedServiceReq.UserId).Scan(
 		&idBalance.Id,
 		&idBalance.Bal,
 	); err != nil {
@@ -690,8 +690,8 @@ func (r *RequestPostgres) FailedServiceFee(failedServiceFeeReq models.StatusServ
 
 	var status string
 
-	if err = tx.QueryRowContext(ctx, getLastServiceStatusQuery, failedServiceFeeReq.UserId, failedServiceFeeReq.OrderId,
-		failedServiceFeeReq.ServiceId, failedServiceFeeReq.Fee).Scan(&status); err != nil {
+	if err = tx.QueryRowContext(ctx, getLastServiceStatusQuery, failedServiceReq.UserId, failedServiceReq.OrderId,
+		failedServiceReq.ServiceId, failedServiceReq.Payment).Scan(&status); err != nil {
 		if err == sql.ErrNoRows {
 			log.Println("no service log with that parameters")
 			err = errors.New("no service log with that parameters")
@@ -700,19 +700,19 @@ func (r *RequestPostgres) FailedServiceFee(failedServiceFeeReq models.StatusServ
 		return fail(err)
 	} else {
 		if status == "Approved" || status == "Cancelled" {
-			err = fmt.Errorf("this fee has already been %s", status)
+			err = fmt.Errorf("this payment has already been %s", status)
 			return fail(err)
 		}
 	}
 
-	_, err = tx.ExecContext(ctx, changeServiceStatusQuery, failedServiceFeeReq.UserId, failedServiceFeeReq.OrderId,
-		failedServiceFeeReq.ServiceId, failedServiceFeeReq.Fee, "Cancelled")
+	_, err = tx.ExecContext(ctx, changeServiceStatusQuery, failedServiceReq.UserId, failedServiceReq.OrderId,
+		failedServiceReq.ServiceId, failedServiceReq.Payment, "Cancelled")
 
 	if err != nil {
 		return fail(err)
 	}
 
-	_, err = tx.ExecContext(ctx, decreasePendingAmountQuery, failedServiceFeeReq.UserId, failedServiceFeeReq.Fee)
+	_, err = tx.ExecContext(ctx, decreasePendingAmountQuery, failedServiceReq.UserId, failedServiceReq.Payment)
 
 	if err != nil {
 		return fail(err)
@@ -722,18 +722,18 @@ func (r *RequestPostgres) FailedServiceFee(failedServiceFeeReq models.StatusServ
 		return fail(err)
 	}
 
-	logServiceOrderRes := r.db.QueryRowContext(ctx, getLastServiceQuery, failedServiceFeeReq.UserId, failedServiceFeeReq.OrderId,
-		failedServiceFeeReq.ServiceId, failedServiceFeeReq.Fee)
+	logServiceOrderRes := r.db.QueryRowContext(ctx, getLastServiceQuery, failedServiceReq.UserId, failedServiceReq.OrderId,
+		failedServiceReq.ServiceId, failedServiceReq.Payment)
 	if err := logServiceOrderRes.Scan(
-		&failedServiceFee.UserId,
-		&failedServiceFee.ServiceId,
-		&failedServiceFee.OrderId,
-		&failedServiceFee.Invoice,
-		&failedServiceFee.Status,
-		&failedServiceFee.CreatedAt,
-		&failedServiceFee.UpdatedAt,
+		&failedService.UserId,
+		&failedService.ServiceId,
+		&failedService.OrderId,
+		&failedService.Invoice,
+		&failedService.Status,
+		&failedService.CreatedAt,
+		&failedService.UpdatedAt,
 	); err != nil {
-		return failedServiceFee, err
+		return failedService, err
 	}
-	return failedServiceFee, nil
+	return failedService, nil
 }

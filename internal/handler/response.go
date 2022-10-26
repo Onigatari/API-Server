@@ -9,6 +9,5 @@ type errorAcc struct {
 }
 
 func NewErrorResponse(c *gin.Context, statusCode int, message string) {
-	//log.Println(message)
 	c.AbortWithStatusJSON(statusCode, errorAcc{message})
 }

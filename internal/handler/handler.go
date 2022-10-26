@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
-	"os"
 )
 
 type Handler struct {
@@ -34,17 +33,17 @@ func (s *Server) Start(Port string) error {
 		Host:     viper.GetString("db.host"),
 		Port:     viper.GetString("db.port"),
 		Username: viper.GetString("db.username"),
-		Password: os.Getenv("DB_PASSWORD"),
+		Password: viper.GetString("db.password"),
 		DBName:   viper.GetString("db.dbname"),
 		SSLMode:  viper.GetString("db.sslmode"),
 	})
 	if err != nil {
-		log.Fatalf("Can't establish connection to database: %s", err.Error())
+		log.Fatalf("[Handler] Can't connect to database: %s", err.Error())
 	} else {
-		log.Println("Database connection successfully established.")
+		log.Println("Database connection!")
 	}
 
-	repos := repository.NewRepo(db)
+	repos := repository.NewRepository(db)
 	services := service.NewService(repos)
 	billingHandler := NewHandler(services)
 	billingRouter := billingHandler.configureRoutes()
@@ -64,7 +63,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func (h *Handler) configureRoutes() *gin.Engine {
 	router := gin.New()
 
-	router.GET("/pong", h.pong)
+	router.GET("/ping", h.ping)
 
 	accountChanges := router.Group("/api/")
 	{
@@ -73,10 +72,9 @@ func (h *Handler) configureRoutes() *gin.Engine {
 		accountChanges.POST("/withdrawal", h.withdrawal)
 		accountChanges.POST("/transfer", h.transfer)
 
-		accountChanges.POST("/reserveServiceFee", h.reserveServiceFee)
-		accountChanges.POST("/approveServiceFee", h.approveOrderFee)
-		accountChanges.POST("/failedServiceFee", h.failedServiceFee)
-
+		accountChanges.POST("/reserveService", h.reserveService)
+		accountChanges.POST("/approveService", h.approveOrder)
+		accountChanges.POST("/failedService", h.failedService)
 	}
 
 	return router
