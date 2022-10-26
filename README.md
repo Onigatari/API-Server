@@ -100,7 +100,7 @@ Input:
 
 Output:
 
-```json
+```
 {
   "user-balance": int,
   "user-pending-amount": int
@@ -122,7 +122,7 @@ Input:
 На вход подается ID пользователя и кол-во средств на зачисление. При вызове метода для несуществующего пользователя
 создается новый.
 
-```json
+```
 {
   "user-id": int,
   "update-amount": int
@@ -131,7 +131,7 @@ Input:
 
 Output:
 
-```json
+```
 {
   "account-id": int,
   "created-at": time.Time(),
@@ -153,7 +153,7 @@ Input:
 
 На вход ID пользователя и кол-во средств на снятие.
 
-```json
+```
 {
   "user-id": int,
   "update-amount": int
@@ -162,7 +162,7 @@ Input:
 
 Output:
 
-```json
+```
 {
   "account-id": int,
   "created-at": time.Time(),
@@ -182,7 +182,7 @@ POST /api/transfer
 
 Input:
 
-```json
+```
 {
   "sender-id": int,
   "receiver-id": int,
@@ -192,7 +192,7 @@ Input:
 
 Output:
 
-```json
+```
 {
   "amount": int,
   "created-at": time.Time(),
@@ -216,7 +216,7 @@ Input:
 На вход принимает ID пользователя, ID услуги, ID заказа и стоимость.
 Записывает все в отдельную таблицу.
 
-```json
+```
 {
   "user-id": int,
   "service-id": int,
@@ -227,7 +227,7 @@ Input:
 
 Output:
 
-```json
+```
 {
   "account-id": int,
   "created-at": time.Time(),
@@ -255,7 +255,7 @@ Input:
 Уменьшает кредитный баланс пользователя и пытается списать сумму со счета.
 В случае нехватки средств откатывает транзакцию и возвращает ошибку.
 
-```json
+```
 {
   "user-id": int,
   "service-id": int,
@@ -266,7 +266,7 @@ Input:
 
 Output:
 
-```json
+```
 {
   "account-id": int,
   "created-at": time.Time(),
@@ -293,7 +293,7 @@ Input:
 на предмет конфликта.
 Устанавливает статус по услуге в "Cancelled", уменьшает кредитный баланс на стоимость услуги.
 
-```json
+```
 {
   "user-id": int,
   "service-id": int,
@@ -304,7 +304,7 @@ Input:
 
 Output:
 
-```json
+```
 {
   "account-id": int,
   "created-at": time.Time(),
