@@ -1,12 +1,15 @@
 package handler
 
 import (
+	_ "Avito/docs"
 	"Avito/internal/repository"
 	"Avito/internal/service"
 	"context"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 	"github.com/spf13/viper"
+	"github.com/swaggo/files"
+	"github.com/swaggo/gin-swagger"
 	"log"
 	"net/http"
 )
@@ -28,7 +31,6 @@ func NewServer() *Server {
 }
 
 func (s *Server) Start(Port string) error {
-
 	db, err := repository.NewPostgresDB(repository.Config{
 		Host:     viper.GetString("db.host"),
 		Port:     viper.GetString("db.port"),
@@ -37,6 +39,7 @@ func (s *Server) Start(Port string) error {
 		DBName:   viper.GetString("db.dbname"),
 		SSLMode:  viper.GetString("db.sslmode"),
 	})
+
 	if err != nil {
 		log.Fatalf("[Handler] Can't connect to database: %s", err.Error())
 	} else {
@@ -64,6 +67,7 @@ func (h *Handler) configureRoutes() *gin.Engine {
 	router := gin.New()
 
 	router.GET("/ping", h.ping)
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	accountChanges := router.Group("/api/")
 	{

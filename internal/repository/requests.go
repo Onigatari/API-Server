@@ -35,7 +35,7 @@ const logTransactionQuery = ` INSERT INTO
 const getTransactionQuery = `SELECT user_id_from, user_id_to, transaction_sum, status, event_type, created_at
 	FROM transactions
 	WHERE user_id_from = (SELECT id FROM users WHERE user_id = $1)
-	AND created_at = (select created_at from transactions order by created_at desc limit 1)
+	AND created_at = (SELECT created_at FROM transactions ORDER BY created_at DESC LIMIT 1)
 `
 
 //goland:noinspection ALL
@@ -127,7 +127,7 @@ func (r *RequestPostgres) GetBalance(userid models.GetBalanceRequest, ctx *gin.C
 	}
 
 	if userid.UserId <= 0 {
-		err := errors.New("illegal user ID")
+		err := errors.New("[Requests] Incorrect user ID")
 		return fail(err)
 	}
 
@@ -154,12 +154,12 @@ func (r *RequestPostgres) Deposit(depositReq models.UpdateBalanceRequest, ctx *g
 	}
 
 	if depositReq.Sum <= 0 {
-		err := errors.New("can't add negative or zero funds")
+		err := errors.New("[Requests] It is not possible to add a negative or zero amount")
 		return fail(err)
 	}
 
 	if depositReq.UserId <= 0 {
-		err := errors.New("illegal user ID")
+		err := errors.New("[Requests] Incorrect user ID")
 		return fail(err)
 	}
 
@@ -173,7 +173,7 @@ func (r *RequestPostgres) Deposit(depositReq models.UpdateBalanceRequest, ctx *g
 			); err != nil {
 				return depositResponse, err
 			}
-			log.Print("created new user ", depositReq.UserId, " in database")
+			log.Print("[Requests] Create new user ", depositReq.UserId, " in database")
 		}
 	}
 
@@ -187,7 +187,7 @@ func (r *RequestPostgres) Deposit(depositReq models.UpdateBalanceRequest, ctx *g
 		if err := recover(); err != nil {
 			rb := tx.Rollback()
 			if rb != nil {
-				errMsg := errors.New("rollback error")
+				errMsg := errors.New("[Requests] Rollback error")
 				_, err := fail(errMsg)
 				if err != nil {
 					return
@@ -244,12 +244,12 @@ func (r *RequestPostgres) Withdrawal(withdrawReq models.UpdateBalanceRequest, ct
 	}
 
 	if withdrawReq.Sum < 0 {
-		err := errors.New("can't withdraw negative funds")
+		err := errors.New("[Requests] Can't withdraw a negative amount")
 		return fail(err)
 	}
 
 	if withdrawReq.UserId <= 0 {
-		err := errors.New("illegal user ID")
+		err := errors.New("[Requests] Incorrect user ID")
 		return fail(err)
 	}
 
@@ -263,7 +263,7 @@ func (r *RequestPostgres) Withdrawal(withdrawReq models.UpdateBalanceRequest, ct
 		if err := recover(); err != nil {
 			rb := tx.Rollback()
 			if rb != nil {
-				errMsg := errors.New("rollback error")
+				errMsg := errors.New("[Requests] Rollback error")
 				_, err := fail(errMsg)
 				if err != nil {
 					return
@@ -280,14 +280,14 @@ func (r *RequestPostgres) Withdrawal(withdrawReq models.UpdateBalanceRequest, ct
 
 	if err = tx.QueryRowContext(ctx, getIdBalanceQuery, withdrawReq.UserId).Scan(&idBalanceHolder.Id, &idBalanceHolder.Balance); err != nil {
 		if err == sql.ErrNoRows {
-			log.Println("no user with that user id: add a new one by depositing money")
+			log.Println("[Requests] There is no such ID user")
 			return fail(err)
 		}
 		return fail(err)
 	}
 	if idBalanceHolder.Balance < withdrawReq.Sum {
-		err = errors.New("not enough funds")
-		log.Println("not enough funds on the user")
+		err = errors.New("[Requests] Not enough funds")
+		log.Println("[Requests] Not enough funds on the user")
 		return fail(err)
 	}
 	_, err = tx.ExecContext(ctx, withdrawFundsQuery, withdrawReq.UserId, withdrawReq.Sum)
@@ -318,7 +318,7 @@ func (r *RequestPostgres) Withdrawal(withdrawReq models.UpdateBalanceRequest, ct
 	); err != nil {
 		return withdrawResponse, err
 	}
-	log.Print("found acc ", withdrawReq.UserId, " in database, withdrew ", withdrawReq.Sum, " funds")
+	log.Print("[Requests] Found ", withdrawReq.UserId, " in database | withdrew: ", withdrawReq.Sum)
 	return models.UpdateBalanceWithdrawResponse{
 		UserId:    withdrawResponse.UserId,
 		Sum:       withdrawResponse.Sum,
@@ -336,21 +336,17 @@ func (r *RequestPostgres) Transfer(transferReq models.TransferRequest, ctx *gin.
 	}
 
 	if transferReq.Sum < 0 {
-		err := errors.New("can't transfer negative amount")
+		err := errors.New("[Requests] Can't transfer negative amount")
 		return fail(err)
 	}
 
 	tx, err := r.db.BeginTx(ctx, nil)
 
-	if err != nil {
-		log.Println("")
-	}
-
 	defer func() {
 		if err := recover(); err != nil {
 			rb := tx.Rollback()
 			if rb != nil {
-				errMsg := errors.New("rollback error")
+				errMsg := errors.New("[Requests] Rollback error")
 				_, err := fail(errMsg)
 				if err != nil {
 					return
@@ -367,7 +363,7 @@ func (r *RequestPostgres) Transfer(transferReq models.TransferRequest, ctx *gin.
 
 	if err = tx.QueryRowContext(ctx, requestByIdQuery, transferReq.ReceiverId).Scan(&idBalanceHolder.Id); err != nil {
 		if err == sql.ErrNoRows {
-			log.Println("no user with that receiver id: add a new one by depositing money")
+			log.Println("[Requests] There is no such ID user")
 			return fail(err)
 		}
 		return fail(err)
@@ -375,13 +371,13 @@ func (r *RequestPostgres) Transfer(transferReq models.TransferRequest, ctx *gin.
 
 	if err = tx.QueryRowContext(ctx, getIdBalanceQuery, transferReq.SenderId).Scan(&idBalanceHolder.Id, &idBalanceHolder.Balance); err != nil {
 		if err == sql.ErrNoRows {
-			log.Println("no user with that sender id: add a new one by depositing money.")
+			log.Println("[Requests] There is no such ID user")
 			return fail(err)
 		}
 		return fail(err)
 	}
 	if idBalanceHolder.Balance < transferReq.Sum {
-		err = errors.New("not enough funds to transfer")
+		err = errors.New("[Requests] Not enough funds to transfer")
 		return fail(err)
 	}
 
@@ -443,37 +439,32 @@ func (r *RequestPostgres) ReserveService(reserveServiceReq models.ReserveService
 	}
 
 	if reserveServiceReq.Payment < 0 {
-		err := errors.New("can't reserve negative sum")
+		err := errors.New("[Requests] Can't reserve negative sum")
 		return fail(err)
 	}
 
 	if reserveServiceReq.ServiceId < 0 {
-		err := errors.New("illegal service ID")
+		err := errors.New("[Requests] There is no such ID service")
 		return fail(err)
 	}
 
 	if reserveServiceReq.OrderId < 0 {
-		err := errors.New("illegal order ID")
+		err := errors.New("[Requests] There is no such ID order")
 		return fail(err)
 	}
 
 	if reserveServiceReq.UserId <= 0 {
-		err := errors.New("illegal user ID")
+		err := errors.New("[Requests] There is no such ID user")
 		return fail(err)
 	}
 
 	tx, err := r.db.BeginTx(ctx, nil)
 
-	if err != nil {
-		log.Println("")
-	}
-
-	// Defer a rollback in case anything fails.
 	defer func() {
 		if err := recover(); err != nil {
 			rb := tx.Rollback()
 			if rb != nil {
-				errMsg := errors.New("rollback error")
+				errMsg := errors.New("[Requests] Rollback error")
 				_, err := fail(errMsg)
 				if err != nil {
 					return
@@ -487,7 +478,7 @@ func (r *RequestPostgres) ReserveService(reserveServiceReq models.ReserveService
 
 	if err = tx.QueryRowContext(ctx, requestByIdQuery, reserveServiceReq.UserId).Scan(&exists); err != nil {
 		if err == sql.ErrNoRows {
-			log.Println("no account with that user id: add a new one by depositing money")
+			log.Println("[Requests] No record with that user ID")
 			return fail(err)
 		}
 		return fail(err)
@@ -534,12 +525,12 @@ func (r *RequestPostgres) ApproveService(approveServiceReq models.StatusServiceR
 	}
 
 	if approveServiceReq.Payment < 0 {
-		err := errors.New("can't withdraw negative funds")
+		err := errors.New("[Requests] Can't withdraw a negative amount")
 		return fail(err)
 	}
 
 	if approveServiceReq.UserId <= 0 {
-		err := errors.New("illegal user ID")
+		err := errors.New("[Requests] There is no such ID user")
 		return fail(err)
 	}
 
@@ -553,7 +544,7 @@ func (r *RequestPostgres) ApproveService(approveServiceReq models.StatusServiceR
 		if err := recover(); err != nil {
 			rb := tx.Rollback()
 			if rb != nil {
-				errMsg := errors.New("rollback error")
+				errMsg := errors.New("[Requests] Rollback error")
 				_, err := fail(errMsg)
 				if err != nil {
 					return
@@ -573,14 +564,14 @@ func (r *RequestPostgres) ApproveService(approveServiceReq models.StatusServiceR
 		&idBalanceHolder.Balance,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			log.Print("No user with that user id. Add a new one by depositing money.")
+			log.Print("[Requests] There is no such ID user")
 			return fail(err)
 		}
 		return fail(err)
 	}
 
 	if idBalanceHolder.Balance < approveServiceReq.Payment {
-		err = errors.New("not enough funds")
+		err = errors.New("[Requests] Insufficient funds")
 		return fail(err)
 	}
 
@@ -589,13 +580,13 @@ func (r *RequestPostgres) ApproveService(approveServiceReq models.StatusServiceR
 	if err = tx.QueryRowContext(ctx, getLastServiceStatusQuery, approveServiceReq.UserId, approveServiceReq.OrderId,
 		approveServiceReq.ServiceId, approveServiceReq.Payment).Scan(&status); err != nil {
 		if err == sql.ErrNoRows {
-			log.Println("No user with that user id. Add a new one by depositing money.")
+			log.Println("[Requests] There is no such ID user")
 			return fail(err)
 		}
 		return fail(err)
 	} else {
 		if status == "Approved" {
-			err = errors.New("this payment has already been approved")
+			err = errors.New("[Requests] payment - Approved")
 			return fail(err)
 		}
 	}
@@ -647,7 +638,7 @@ func (r *RequestPostgres) FailedService(failedServiceReq models.StatusServiceReq
 	}
 
 	if failedServiceReq.UserId <= 0 {
-		err := errors.New("illegal user ID")
+		err := errors.New("[Requests] There is no such ID user")
 		return fail(err)
 	}
 
@@ -661,7 +652,7 @@ func (r *RequestPostgres) FailedService(failedServiceReq models.StatusServiceReq
 		if err := recover(); err != nil {
 			rb := tx.Rollback()
 			if rb != nil {
-				errMsg := errors.New("rollback error")
+				errMsg := errors.New("[Requests] Rollback error")
 				_, err := fail(errMsg)
 				if err != nil {
 					return
@@ -681,8 +672,8 @@ func (r *RequestPostgres) FailedService(failedServiceReq models.StatusServiceReq
 		&idBalance.Bal,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			log.Println("no user with that user-id: create a new one by depositing money")
-			err = errors.New("no user with that user-id")
+			log.Println("[Requests] There is no such ID user")
+			err = errors.New("[Requests] There is no such ID user")
 			return fail(err)
 		}
 		return fail(err)
@@ -693,8 +684,8 @@ func (r *RequestPostgres) FailedService(failedServiceReq models.StatusServiceReq
 	if err = tx.QueryRowContext(ctx, getLastServiceStatusQuery, failedServiceReq.UserId, failedServiceReq.OrderId,
 		failedServiceReq.ServiceId, failedServiceReq.Payment).Scan(&status); err != nil {
 		if err == sql.ErrNoRows {
-			log.Println("no service log with that parameters")
-			err = errors.New("no service log with that parameters")
+			log.Println("[Requests] No service with that parameters")
+			err = errors.New("[Requests] No service with that parameters")
 			return fail(err)
 		}
 		return fail(err)
@@ -705,14 +696,19 @@ func (r *RequestPostgres) FailedService(failedServiceReq models.StatusServiceReq
 		}
 	}
 
-	_, err = tx.ExecContext(ctx, changeServiceStatusQuery, failedServiceReq.UserId, failedServiceReq.OrderId,
-		failedServiceReq.ServiceId, failedServiceReq.Payment, "Cancelled")
+	_, err = tx.ExecContext(ctx, changeServiceStatusQuery,
+		failedServiceReq.UserId,
+		failedServiceReq.OrderId,
+		failedServiceReq.ServiceId,
+		failedServiceReq.Payment, "Cancelled")
 
 	if err != nil {
 		return fail(err)
 	}
 
-	_, err = tx.ExecContext(ctx, decreasePendingAmountQuery, failedServiceReq.UserId, failedServiceReq.Payment)
+	_, err = tx.ExecContext(ctx, decreasePendingAmountQuery,
+		failedServiceReq.UserId,
+		failedServiceReq.Payment)
 
 	if err != nil {
 		return fail(err)
@@ -722,8 +718,12 @@ func (r *RequestPostgres) FailedService(failedServiceReq models.StatusServiceReq
 		return fail(err)
 	}
 
-	logServiceOrderRes := r.db.QueryRowContext(ctx, getLastServiceQuery, failedServiceReq.UserId, failedServiceReq.OrderId,
-		failedServiceReq.ServiceId, failedServiceReq.Payment)
+	logServiceOrderRes := r.db.QueryRowContext(ctx, getLastServiceQuery,
+		failedServiceReq.UserId,
+		failedServiceReq.OrderId,
+		failedServiceReq.ServiceId,
+		failedServiceReq.Payment)
+
 	if err := logServiceOrderRes.Scan(
 		&failedService.UserId,
 		&failedService.ServiceId,
@@ -735,5 +735,6 @@ func (r *RequestPostgres) FailedService(failedServiceReq models.StatusServiceReq
 	); err != nil {
 		return failedService, err
 	}
+
 	return failedService, nil
 }

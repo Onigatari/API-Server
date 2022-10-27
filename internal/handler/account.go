@@ -8,15 +8,27 @@ import (
 	"strconv"
 )
 
+// @Summary Ping
+// @Description Ping-Pong!
+// @Produce json
+// @Router /ping/ [get]
 func (h *Handler) ping(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "pong",
 	})
 }
 
+// @Summary Balance
+// @Tags api
+// @Description Метод начисления средств на баланс
+// @Produce json
+// @Param id path integer true "user id"
+// @Success 200 {object} models.GetBalanceResponse
+// @Failure 500 {object} errorMessage
+// @Router /api/balance/{id} [get]
 func (h *Handler) balance(c *gin.Context) {
 	idStringInput := c.Param("id")
-	log.Printf("Input read: %v %T", idStringInput, idStringInput)
+	log.Printf("[Balance] Input read: %v %T", idStringInput, idStringInput)
 
 	idNumberInput, err := strconv.ParseInt(idStringInput, 10, 64)
 	if err != nil {
@@ -37,6 +49,14 @@ func (h *Handler) balance(c *gin.Context) {
 	}
 }
 
+// @Summary Deposit
+// @Tags api
+// @Description Метод пополнение баланса
+// @Produce json
+// @Param input body models.UpdateBalanceRequest true "JSON с ID пользователя и суммой денег для вноса"
+// @Success 200 {object} models.UpdateBalanceRequest
+// @Failure 500 {object} errorMessage
+// @Router /api/deposit/ [post]
 func (h *Handler) deposit(c *gin.Context) {
 	var updateBalanceDepositRequest models.UpdateBalanceRequest
 
@@ -58,6 +78,14 @@ func (h *Handler) deposit(c *gin.Context) {
 	}
 }
 
+// @Summary Withdrawal
+// @Tags api
+// @Description Метод снятие средств со счета
+// @Produce json
+// @Param input body models.UpdateBalanceRequest true "JSON с ID пользователя и суммой денег для вывода"
+// @Success 200 {object} models.UpdateBalanceRequest
+// @Failure 500 {object} errorMessage
+// @Router /api/withdrawal/ [post]
 func (h *Handler) withdrawal(c *gin.Context) {
 	var updateBalanceWithdrawRequest models.UpdateBalanceRequest
 
@@ -79,6 +107,14 @@ func (h *Handler) withdrawal(c *gin.Context) {
 	}
 }
 
+// @Summary Transfer
+// @Tags api
+// @Description Метод перевода между пользователями
+// @Produce json
+// @Param input body models.TransferRequest true "JSON с ID отправителя, ID получателя и суммой денег"
+// @Success 200 {object} models.TransferRequest
+// @Failure 500 {object} errorMessage
+// @Router /api/transfer/ [post]
 func (h *Handler) transfer(c *gin.Context) {
 	var transferRequest models.TransferRequest
 
@@ -101,6 +137,14 @@ func (h *Handler) transfer(c *gin.Context) {
 	}
 }
 
+// @Summary Reserve Service
+// @Tags api
+// @Description Метод перевода между пользователями
+// @Produce json
+// @Param input body models.ReserveServiceRequest true "JSON с ID пользователя, ID услуги, ID заказа и суммой комиссии"
+// @Success 200 {object} models.ReserveServiceRequest
+// @Failure 500 {object} errorMessage
+// @Router /api/reserveService/ [post]
 func (h *Handler) reserveService(c *gin.Context) {
 	var reserveServiceRequest models.ReserveServiceRequest
 
@@ -124,6 +168,14 @@ func (h *Handler) reserveService(c *gin.Context) {
 	}
 }
 
+// @Summary Approve Order
+// @Tags api
+// @Description Метод признания выручки: списывает из резерва деньги, добавляет данные в отчет для бухгалтерии
+// @Produce json
+// @Param input body models.StatusServiceRequest true "JSON с ID пользователя, ID услуги, ID заказа и суммой комиссии"
+// @Success 200 {object} models.StatusServiceRequest
+// @Failure 500 {object} errorMessage
+// @Router /api/approveOrder/ [post]
 func (h *Handler) approveOrder(c *gin.Context) {
 	var statusApproveServiceRequest models.StatusServiceRequest
 
@@ -147,6 +199,14 @@ func (h *Handler) approveOrder(c *gin.Context) {
 	}
 }
 
+// @Summary Failed Service
+// @Tags api
+// @Description Метод признания выручки: списывает из резерва деньги, добавляет данные в отчет для бухгалтерии
+// @Produce json
+// @Param input body models.StatusServiceRequest true "JSON с ID пользователя, ID услуги, ID заказа и суммой комиссии"
+// @Success 200 {object} models.StatusServiceRequest
+// @Failure 500 {object} errorMessage
+// @Router /api/failedService/ [post]
 func (h *Handler) failedService(c *gin.Context) {
 	var statusFailedServiceRequest models.StatusServiceRequest
 

@@ -6,6 +6,11 @@ import (
 	"log"
 )
 
+// @title API-Server AvitoTech
+// @version 1.0
+// @description Microservice for working with user balance
+
+// @host localhost:8080
 func main() {
 	if err := initConfig(); err != nil {
 		log.Fatalf("[Main] Error initialize configs: %s", err.Error())

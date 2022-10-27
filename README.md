@@ -77,6 +77,7 @@ make migrate-up
 ```
 
 ### Основное задание:
+Swagger: `/swagger/index.html`
 
 Методы:
 * `GET  /api/getBalance/:id`: Метод проверки баланса пользователя

@@ -1,0 +1,242 @@
+definitions:
+  handler.errorMessage:
+    properties:
+      error-message:
+        type: string
+    type: object
+  models.GetBalanceResponse:
+    properties:
+      user-balance:
+        type: integer
+      user-pending-amount:
+        type: integer
+    type: object
+  models.ReserveServiceRequest:
+    properties:
+      order-id:
+        type: integer
+      payment:
+        type: integer
+      service-id:
+        type: integer
+      user-id:
+        type: integer
+    type: object
+  models.StatusServiceRequest:
+    properties:
+      order-id:
+        type: integer
+      payment:
+        type: integer
+      service-id:
+        type: integer
+      user-id:
+        type: integer
+    type: object
+  models.TransferRequest:
+    properties:
+      receiver-id:
+        type: integer
+      sender-id:
+        type: integer
+      transfer-amount:
+        type: integer
+    required:
+    - receiver-id
+    - sender-id
+    - transfer-amount
+    type: object
+  models.UpdateBalanceRequest:
+    properties:
+      update-amount:
+        type: integer
+      user-id:
+        type: integer
+    required:
+    - update-amount
+    - user-id
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Microservice for working with user balance
+  title: API-Server AvitoTech
+  version: "1.0"
+paths:
+  /api/approveOrder/:
+    post:
+      description: 'Метод признания выручки: списывает из резерва деньги, добавляет
+        данные в отчет для бухгалтерии'
+      parameters:
+      - description: JSON с ID пользователя, ID услуги, ID заказа и суммой комиссии
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.StatusServiceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.StatusServiceRequest'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.errorMessage'
+      summary: Approve Order
+      tags:
+      - api
+  /api/balance/{id}:
+    get:
+      description: Метод начисления средств на баланс
+      parameters:
+      - description: user id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GetBalanceResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.errorMessage'
+      summary: Balance
+      tags:
+      - api
+  /api/deposit/:
+    post:
+      description: Метод пополнение баланса
+      parameters:
+      - description: JSON с ID пользователя и суммой денег для вноса
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateBalanceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UpdateBalanceRequest'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.errorMessage'
+      summary: Deposit
+      tags:
+      - api
+  /api/failedService/:
+    post:
+      description: 'Метод признания выручки: списывает из резерва деньги, добавляет
+        данные в отчет для бухгалтерии'
+      parameters:
+      - description: JSON с ID пользователя, ID услуги, ID заказа и суммой комиссии
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.StatusServiceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.StatusServiceRequest'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.errorMessage'
+      summary: Failed Service
+      tags:
+      - api
+  /api/reserveService/:
+    post:
+      description: Метод перевода между пользователями
+      parameters:
+      - description: JSON с ID пользователя, ID услуги, ID заказа и суммой комиссии
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.ReserveServiceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ReserveServiceRequest'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.errorMessage'
+      summary: Reserve Service
+      tags:
+      - api
+  /api/transfer/:
+    post:
+      description: Метод перевода между пользователями
+      parameters:
+      - description: JSON с ID отправителя, ID получателя и суммой денег
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.TransferRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.TransferRequest'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.errorMessage'
+      summary: Transfer
+      tags:
+      - api
+  /api/withdrawal/:
+    post:
+      description: Метод снятие средств со счета
+      parameters:
+      - description: JSON с ID пользователя и суммой денег для вывода
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateBalanceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.UpdateBalanceRequest'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.errorMessage'
+      summary: Withdrawal
+      tags:
+      - api
+  /ping/:
+    get:
+      description: Ping-Pong!
+      produces:
+      - application/json
+      responses: {}
+      summary: Ping
+swagger: "2.0"
