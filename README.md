@@ -66,14 +66,22 @@ _Input_:
 
 ---
 
-Для развертывания приложения необходимы docker-compose и утилита [migrate](https://github.com/golang-migrate/migrate)
+Для развертывания приложения необходимы docker-compose, утилиты [migrate](https://github.com/golang-migrate/migrate) и make.
 
 Последовательность команд для запуска приложения:
 
+Unix:
 ```
 make build
 make run
 make migrate-up
+```
+
+Windows:
+```
+docker-compose build
+docker-compose up
+migrate -path ./schema -database 'postgres://admin:admin@localhost:5400/postgres?sslmode=disable' up
 ```
 
 ### Основное задание:
